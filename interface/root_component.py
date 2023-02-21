@@ -16,7 +16,7 @@ from connectors.binance_futures import BinanceFuturesClient
 from interface.watchlist_component import WatchList
 from interface.trades_component import TradesWatch
 from interface.strategy_component import StrategyEditor
-
+import threading
 logger = logging.getLogger()
 
 
@@ -162,49 +162,29 @@ class Root(tk.Tk):
                 exchange = self._watchlist_frame.body_widgets['exchange'][key].cget('text')
 
                 if exchange == "Binance":
+                    # if symbol not in self.binance.contracts:
+                    #     continue
 
-                    self.binance.subscribe_channel([self.binance.contracts[symbol]], "aggTrade")
-
-                    if symbol not in self.binance.contracts:
-                        continue
-                    if symbol not in self.binance.prices:
-                        try:
-                            self.binance.get_bid_ask(self.binance.contracts)
-                        except AttributeError as e:
-                            # This try-except catches exception where in the first couple minutes of running,
-                            # websockets might not get all bid/asks so UI gets Attribute error for contract.symbol
-                            # entered to the watchlist
-                            logger.error("AttributeError while getting bid/asks for a symbol: %s", e)
-                            # t = threading.Thread(target=self.binance._start_ws)
-                            # t.start()
-                            # TODO: Sometimes Binance Websocket does not connect for 1-2 minutes,
-                            # I need to be sure not to take action before connection established or
-                            # retry connection like commented 2 lines above (?)
-                            # Above 2 lines work, it forces a new websocket and eventually we get a
-                            # connection. Still needs manual handling though
-                            # EUREKA!: Create sample contract object with missing symbol, get_bid_ask() and add
-                            # that to binance.contracts in the exception code-block
-                            continue
+                    # if symbol not in self.binance.prices:
+                    #     self.binance.get_bid_ask(self.binance.contracts[symbol])
+                    #     print("BIDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",self.binance.get_bid_ask(self.binance.contracts[symbol]))
+                    #     continue
+                    self.binance.get_bid_ask(self.binance.contracts[symbol])
                     precision = self.binance.contracts[symbol].price_decimals
-                    prices = self.binance.prices[symbol]
 
-                # elif exchange == "Bitmex":
-                #     if symbol not in self.bitmex.contracts:
-                #         continue
-                #     if symbol not in self.bitmex.prices:
-                #         continue
-                #     precision = self.bitmex.contracts[symbol].price_decimals
-                #     prices = self.bitmex.prices[symbol]
-                else:
-                    continue
+                    prices = self.binance.prices[symbol]
 
                 if prices['bid'] is not None:
                     price_str = "{0:.{prec}f}".format(prices['bid'], prec=precision)
+                    print("price_str: ", price_str)
                     self._watchlist_frame.body_widgets['bid_var'][key].set(price_str)
                 if prices['ask'] is not None:
                     price_str = "{0:.{prec}f}".format(prices['ask'], prec=precision)
                     self._watchlist_frame.body_widgets['ask_var'][key].set(price_str)
+                
         except RuntimeError as e:
             logger.error("RuntimeError while looping through watchlist dictionary: %s", e)
 
         self.after(1500, self._update_ui)
+        # t = threading.Thread(target=self.binance.ws.close())
+        # t.start()
