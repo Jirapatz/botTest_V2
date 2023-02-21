@@ -5,11 +5,13 @@ from models import *
 from interface.autocomplete_widget import AutoComplete
 from interface.scrollable_frame import ScrollableFrame
 from database import WorkspaceData
+import config
+from binance.um_futures import UMFutures
 
 
 class WatchList(tk.Frame):
     def __init__(self, binance_contracts: typing.Dict[str, Contract], *args, **kwargs):
-    # def __init__(self, binance_contracts: typing.Dict[str, Contract], bitmex_contracts: typing.Dict[str, Contract], *args, **kwargs):
+        # def __init__(self, binance_contracts: typing.Dict[str, Contract], bitmex_contracts: typing.Dict[str, Contract], *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.db = WorkspaceData()
@@ -23,7 +25,8 @@ class WatchList(tk.Frame):
         self._table_frame = tk.Frame(self, bg=BG_COLOR)
         self._table_frame.pack(side=tk.TOP)
 
-        self._binance_label = tk.Label(self._commands_frame, text="Binance", bg=BG_COLOR, fg=FG_COLOR, font=BOLD_FONT)
+        self._binance_label = tk.Label(
+            self._commands_frame, text="Binance", bg=BG_COLOR, fg=FG_COLOR, font=BOLD_FONT)
         self._binance_label.grid(row=0, column=0)
 
         self._binance_entry = AutoComplete(self.binance_symbols, self._commands_frame, fg=FG_COLOR, justify=tk.CENTER,
@@ -42,7 +45,7 @@ class WatchList(tk.Frame):
 
         self.body_widgets = dict()
 
-        self._headers = ["symbol", "exchange", "bid", "ask", "remove"]
+        self._headers = ["symbol", "exchange", "bid", "ask", "remove", "buy"]
         self._headers_frame = tk.Frame(self._table_frame, bg=BG_COLOR)
 
         self._col_width = 11
@@ -77,6 +80,32 @@ class WatchList(tk.Frame):
         for h in self._headers:
             self.body_widgets[h][b_index].grid_forget()
             del self.body_widgets[h][b_index]
+
+    def _buy_symbol(self, b_index: int):
+        list_symbol = []
+        um_futures_client = UMFutures()
+
+        print(um_futures_client.time())
+
+        um_futures_client = UMFutures(key=config.FUTURES_API_KEY,
+                                      secret=config.FUTURES_API_SECRET, base_url='https://testnet.binancefuture.com')
+        
+        saved_symbols = self.db.get("watchlist")
+        for h in saved_symbols:
+            list_symbol += [h['symbol']]
+
+        print(list_symbol)
+        print("buy symbol", list_symbol[b_index-1])
+        params = {
+            'symbol': list_symbol[b_index-1],
+            'side': 'SELL',
+            'type': 'MARKET',
+            'quantity': 0.002,
+        }
+
+        response = um_futures_client.new_order(**params)
+        print(response)
+
 
     # TODO: Instead of en entry box, it may be better to use tk.OptionMenu... we already have the keys list above.
     # using select box may eliminate typing mistakes or upper-lower case mistakes
@@ -123,7 +152,9 @@ class WatchList(tk.Frame):
                                                          bg="darkred", fg=FG_COLOR, font=GLOBAL_FONT, width=4,
                                                          command=lambda: self._remove_symbol(b_index))
         self.body_widgets['remove'][b_index].grid(row=b_index, column=4)
+        self.body_widgets['buy'][b_index] = tk.Button(self._body_frame.sub_frame, text="B",
+                                                      bg="darkred", fg=FG_COLOR, font=GLOBAL_FONT, width=4,
+                                                      command=lambda: self._buy_symbol(b_index))
+        self.body_widgets['buy'][b_index].grid(row=b_index, column=5)
 
         self._body_index += 1
-
-

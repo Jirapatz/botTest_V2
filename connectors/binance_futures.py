@@ -70,12 +70,14 @@ class BinanceFuturesClient:
         self.logs = []
 
         # TODO: Instead of pointing out like that, can we say 'all child classes of Strategy class'?
-        self.strategies: typing.Dict[int, typing.Union[TechnicalStrategy, BreakoutStrategy]] = dict()
+        self.strategies: typing.Dict[int,
+                                     typing.Union[TechnicalStrategy, BreakoutStrategy]] = dict()
 
         t = threading.Thread(target=self._start_ws)
         t.start()
 
-        logger.info(f"Binance Futures Client {self.connection_type} successfully initialized")
+        logger.info(
+            f"Binance Futures Client {self.connection_type} successfully initialized")
 
     def _add_log(self, msg: str):
         logger.info("%s", msg)
@@ -88,25 +90,32 @@ class BinanceFuturesClient:
     def _make_requests(self, method: str, endpoint: str, parameters: typing.Dict):
         if method == "GET":
             try:
-                response = requests.get(self._base_url + endpoint, params=parameters, headers=self.headers)
+                response = requests.get(
+                    self._base_url + endpoint, params=parameters, headers=self.headers)
             except Exception as e:
-                logger.error("Connection error while making %s request to %s: %s", method, endpoint, e)
+                logger.error(
+                    "Connection error while making %s request to %s: %s", method, endpoint, e)
                 return None
         elif method == "POST":
             try:
-                response = requests.post(self._base_url + endpoint, params=parameters, headers=self.headers)
+                response = requests.post(
+                    self._base_url + endpoint, params=parameters, headers=self.headers)
             except Exception as e:
-                logger.error("Connection error while making %s request to %s: %s", method, endpoint, e)
+                logger.error(
+                    "Connection error while making %s request to %s: %s", method, endpoint, e)
                 return None
         elif method == "DELETE":
             try:
-                response = requests.delete(self._base_url + endpoint, params=parameters, headers=self.headers)
+                response = requests.delete(
+                    self._base_url + endpoint, params=parameters, headers=self.headers)
             except Exception as e:
-                logger.error("Connection error while making %s request to %s: %s", method, endpoint, e)
+                logger.error(
+                    "Connection error while making %s request to %s: %s", method, endpoint, e)
                 return None
         else:
-            raise ValueError("so far, only GET, POST and DELETE methods are coded.")
-        
+            raise ValueError(
+                "so far, only GET, POST and DELETE methods are coded.")
+
         if response.status_code == 200:
             return response.json()
         else:
@@ -115,12 +124,14 @@ class BinanceFuturesClient:
             return None
 
     def get_contracts(self) -> typing.Dict[str, Contract]:
-        exchange_info = self._make_requests("GET", "/fapi/v1/exchangeInfo", dict())
+        exchange_info = self._make_requests(
+            "GET", "/fapi/v1/exchangeInfo", dict())
         contracts = dict()
 
         if exchange_info is not None:
             for contract_data in exchange_info['symbols']:
-                contracts[contract_data['symbol']] = Contract(self.platform, contract_data)
+                contracts[contract_data['symbol']] = Contract(
+                    self.platform, contract_data)
 
         return contracts
 
@@ -131,7 +142,8 @@ class BinanceFuturesClient:
         data['interval'] = interval
         data['limit'] = 1000
 
-        raw_candles = self._make_requests("GET", candlesticks_endpoint, parameters=data)
+        raw_candles = self._make_requests(
+            "GET", candlesticks_endpoint, parameters=data)
         candles = []
         if raw_candles is not None:
             for candle in raw_candles:
@@ -142,18 +154,20 @@ class BinanceFuturesClient:
     def get_bid_ask(self, contract: Contract) -> typing.Dict[str, float]:
         order_book_endpoint = "/fapi/v1/ticker/bookTicker"  # GET
         data = dict()
-        print("Data bid/ask: ", data)
         data['symbol'] = contract.symbol
-        order_book_request = self._make_requests("GET", order_book_endpoint, data)
+        order_book_request = self._make_requests(
+            "GET", order_book_endpoint, data)
 
         if order_book_request is not None:
             if contract.symbol not in self.prices:
                 self.prices[contract.symbol] = {'bid': float(order_book_request['bidPrice']),
                                                 'ask': float(order_book_request['askPrice'])}
             else:
-                self.prices[contract.symbol]['bid'] = float(order_book_request['bidPrice'])
-                self.prices[contract.symbol]['ask'] = float(order_book_request['askPrice'])
-
+                self.prices[contract.symbol]['bid'] = float(
+                    order_book_request['bidPrice'])
+                self.prices[contract.symbol]['ask'] = float(
+                    order_book_request['askPrice'])
+        
             return self.prices[contract.symbol]
 
     def get_balances(self) -> typing.Dict[str, Balance]:
@@ -161,7 +175,7 @@ class BinanceFuturesClient:
         data = dict()
         data['timestamp'] = int(time.time() * 1000)
         data['signature'] = self._generate_signature(data)
-        
+
         balances = dict()
         account_data = self._make_requests("GET", endpoint, data)
         if account_data is not None:
@@ -185,17 +199,20 @@ class BinanceFuturesClient:
         Returns:
 
         """
-        print(f"we reached place_order binance for {contract.symbol} // binance_futures.py")
+        print(
+            f"we reached place_order binance for {contract.symbol} // binance_futures.py")
 
         endpoint = "/fapi/v1/order"    # POST
         data = dict()
         data['symbol'] = contract.symbol
         data['side'] = side.upper()
-        data['quantity'] = round(round(quantity / contract.lot_size) * contract.lot_size, 8)
+        data['quantity'] = round(
+            round(quantity / contract.lot_size) * contract.lot_size, 8)
         data["type"] = order_type.upper().replace("İ", "I")
 
         if price is not None:
-            data['price'] = round(round(price / contract.tick_size) * contract.tick_size, 8)
+            data['price'] = round(
+                round(price / contract.tick_size) * contract.tick_size, 8)
         if tif is not None:
             data['timeInForce'] = tif
         data['timestamp'] = int(time.time() * 1000)
@@ -208,13 +225,13 @@ class BinanceFuturesClient:
 
         return order_status
 
-    # TODO: There should be an easy way to get order id and store them 
+    # TODO: There should be an easy way to get order id and store them
     # in order to access when we need to cancel or get status
 
     def place_market_order(self):
         # TODO: code
         return
-    
+
     def place_limit_order(self):
         # TODO: code
         return
@@ -284,12 +301,14 @@ class BinanceFuturesClient:
             except Exception as e:
                 logger.error("Binance error in run_forever() method: %s", e)
             time.sleep(2)
-    
+
     def _on_open(self, ws):
         logger.info("Binance WebSocket connection opened.")
 
         self.subscribe_channel(list(self.contracts.values()), "bookTicker")
-        # self.subscribe_channel(list(self.contracts.values()), "aggTrade")
+        self.subscribe_channel(list(self.contracts.values()), "aggTrade")
+        # self.ws.close()
+
 
     def _on_close(self, ws, *args, **kwargs):
         logger.warning("Binance WebSocket connection closed.")
@@ -321,19 +340,24 @@ class BinanceFuturesClient:
                             for trade in strategy.trades:
                                 if trade.status == "open" and trade.entry_price is not None:
                                     if trade.side == "long":
-                                        trade.pnl = (self.prices[symbol]['bid'] - trade.entry_price) * trade.quantity
+                                        trade.pnl = (
+                                            self.prices[symbol]['bid'] - trade.entry_price) * trade.quantity
                                     elif trade.side == "short":
-                                        trade.pnl = (trade.entry_price - self.prices[symbol]['ask']) * trade.quantity
+                                        trade.pnl = (
+                                            trade.entry_price - self.prices[symbol]['ask']) * trade.quantity
                 except RuntimeError as e:
-                    logger.error("Error while looping through the Binance Strategies: %s", e)
+                    logger.error(
+                        "Error while looping through the Binance Strategies: %s", e)
 
             if data['e'] == "aggTrade":
                 # print(f"we reached Binance on_message: aggTrade for {symbol} // binance_futures.py")
 
                 for key, strategy in self.strategies.items():
                     if strategy.contract.symbol == symbol:
-                        res = strategy.parse_trades(float(data['p']), float(data['q']), data['T'])
+                        res = strategy.parse_trades(
+                            float(data['p']), float(data['q']), data['T'])
                         strategy.check_trade(res)
+        
 
     def subscribe_channel(self, contracts: typing.List[Contract], channel: str):
         data = dict()
@@ -347,6 +371,7 @@ class BinanceFuturesClient:
 
         try:
             self.ws.send(json.dumps(data))
+            # print("Sent: %s" % data)
         except Exception as e:
             logger.error("Websocket error while subscribing to %s %s updates: %s",
                          len(contracts), channel, e)
@@ -366,9 +391,11 @@ class BinanceFuturesClient:
             return None
 
         trade_size = (balance * balance_pct / 100) * price
-        trade_size = round(round(trade_size / contract.lot_size) * contract.lot_size, 8)
+        trade_size = round(
+            round(trade_size / contract.lot_size) * contract.lot_size, 8)
 
-        logger.info("Binance Futures current USDT balance = %s, trade size = %s", balance, trade_size)
+        logger.info(
+            "Binance Futures current USDT balance = %s, trade size = %s", balance, trade_size)
 
         return trade_size
 

@@ -14,6 +14,6 @@ class Logging(tk.Frame):
     def add_log(self, message: str):
         self.logging_text.configure(state=tk.NORMAL)
 
-        self.logging_text.insert("1.0", datetime.utcnow().strftime("%d/%m/%y - %X %a : ") + message + "\n")
+        self.logging_text.insert("1.0", datetime.now().strftime("%d/%m/%y - %X %a : ") + message + "\n")
         # instad of "1.0", tk.END writes text at the end of textbox
         self.logging_text.configure(state=tk.DISABLED)
