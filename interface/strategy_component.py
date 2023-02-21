@@ -320,7 +320,7 @@ class StrategyEditor(tk.Frame):
                 if base_param['widget'] == tk.OptionMenu and row[code_name] is not None:
                     self.body_widgets[code_name + "_var"][b_index].set(row[code_name])
                 elif base_param['widget'] == tk.Entry and row[code_name] is not None:
-                    self.body_widgets[code_name][b_index].inset(tk.END, row[code_name])
+                    self.body_widgets[code_name][b_index].insert(tk.END, row[code_name])
 
             extra_params = json.loads(row["extra_params"])
             for param, value in extra_params.items():

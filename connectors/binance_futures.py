@@ -47,13 +47,13 @@ class BinanceFuturesClient:
     def __init__(self, public_key: str, secret_key: str, testnet: bool) -> None:
         if testnet:
             self._base_url = "https://testnet.binancefuture.com"
-            self._wss_url = "wss://testnet.binancefuture.com/ws"
+            self._wss_url = "wss://stream.binancefuture.com/ws"
             self.connection_type = "Testnet"
         else:
             self._base_url = "https://fapi.binance.com"
             self._wss_url = "wss://fsrteam.binance.com/ws"
             self.connection_type = "Real Account"
-
+        print("Connection_type: ", self.connection_type)
         self.platform = "binance"
         self._public_key = public_key
         self._secret_key = secret_key
@@ -142,6 +142,7 @@ class BinanceFuturesClient:
     def get_bid_ask(self, contract: Contract) -> typing.Dict[str, float]:
         order_book_endpoint = "/fapi/v1/ticker/bookTicker"  # GET
         data = dict()
+        print("Data bid/ask: ", data)
         data['symbol'] = contract.symbol
         order_book_request = self._make_requests("GET", order_book_endpoint, data)
 
@@ -273,8 +274,7 @@ class BinanceFuturesClient:
 
     def _start_ws(self):
         self.ws = websocket.WebSocketApp(self._wss_url,
-                                         on_open=self._on_open, on_close=self._on_close,
-                                         on_error=self._on_error, on_message=self._on_message)
+                                         on_open=self._on_open, on_message=self._on_message, on_error=self._on_error, on_close=self._on_close)
         while True:
             try:
                 if self.reconnect:
@@ -291,7 +291,7 @@ class BinanceFuturesClient:
         self.subscribe_channel(list(self.contracts.values()), "bookTicker")
         # self.subscribe_channel(list(self.contracts.values()), "aggTrade")
 
-    def _on_close(self, ws):
+    def _on_close(self, ws, *args, **kwargs):
         logger.warning("Binance WebSocket connection closed.")
 
     def _on_error(self, ws, msg: str):
@@ -300,6 +300,7 @@ class BinanceFuturesClient:
     def _on_message(self, ws, msg: str):
 
         data = json.loads(msg)
+        print("Data: ", data)
 
         if "e" in data:
             symbol = data['s']

@@ -28,7 +28,7 @@ class Root(tk.Tk):
         self.binance = binance
         # self.bitmex = bitmex
 
-        self.title("$$$🚀💵 MoneyMachine v1.0 💵🚀$$$")
+        self.title("Cryptocurrency Trading Bot")
         self.protocol("WM_DELETE_WINDOW", self._ask_before_close)
 
         self.configure(bg=BG_COLOR)
