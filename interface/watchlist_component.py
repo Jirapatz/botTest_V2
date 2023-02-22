@@ -45,7 +45,7 @@ class WatchList(tk.Frame):
 
         self.body_widgets = dict()
 
-        self._headers = ["symbol", "exchange", "bid", "ask", "remove", "buy"]
+        self._headers = ["symbol", "exchange", "bid", "ask", "remove", "buy", "sell"]
         self._headers_frame = tk.Frame(self._table_frame, bg=BG_COLOR)
 
         self._col_width = 11
@@ -55,9 +55,9 @@ class WatchList(tk.Frame):
                               bg=BG_COLOR, fg=FG_COLOR, font=GLOBAL_FONT, width=self._col_width)
             header.grid(row=0, column=idx)
 
-        header = tk.Label(self._headers_frame, text="",
-                          bg=BG_COLOR, fg=FG_COLOR, font=GLOBAL_FONT, width=2)
-        header.grid(row=0, column=len(self._headers))
+        # header = tk.Label(self._headers_frame, text="",
+        #                   bg=BG_COLOR, fg=FG_COLOR, font=GLOBAL_FONT, width=2)
+        # header.grid(row=0, column=len(self._headers))
 
         self._headers_frame.pack(side=tk.TOP, anchor="nw")
 
@@ -98,6 +98,30 @@ class WatchList(tk.Frame):
         print("buy symbol", list_symbol[b_index-1])
         params = {
             'symbol': list_symbol[b_index-1],
+            'side': 'BUY',
+            'type': 'MARKET',
+            'quantity': 0.002,
+        }
+
+        response = um_futures_client.new_order(**params)
+        print(response)
+    def _sell_symbol(self, b_index: int):
+        list_symbol = []
+        um_futures_client = UMFutures()
+
+        print(um_futures_client.time())
+
+        um_futures_client = UMFutures(key=config.FUTURES_API_KEY,
+                                      secret=config.FUTURES_API_SECRET, base_url='https://testnet.binancefuture.com')
+        
+        saved_symbols = self.db.get("watchlist")
+        for h in saved_symbols:
+            list_symbol += [h['symbol']]
+
+        print(list_symbol)
+        print("buy symbol", list_symbol[b_index-1])
+        params = {
+            'symbol': list_symbol[b_index-1],
             'side': 'SELL',
             'type': 'MARKET',
             'quantity': 0.002,
@@ -105,7 +129,6 @@ class WatchList(tk.Frame):
 
         response = um_futures_client.new_order(**params)
         print(response)
-
 
     # TODO: Instead of en entry box, it may be better to use tk.OptionMenu... we already have the keys list above.
     # using select box may eliminate typing mistakes or upper-lower case mistakes
@@ -149,12 +172,16 @@ class WatchList(tk.Frame):
         self.body_widgets["ask"][b_index].grid(row=b_index, column=3)
 
         self.body_widgets['remove'][b_index] = tk.Button(self._body_frame.sub_frame, text="X",
-                                                         bg="darkred", fg=FG_COLOR, font=GLOBAL_FONT, width=4,
+                                                         bg="darkred", fg=FG_COLOR, font=GLOBAL_FONT, width=9,
                                                          command=lambda: self._remove_symbol(b_index))
         self.body_widgets['remove'][b_index].grid(row=b_index, column=4)
         self.body_widgets['buy'][b_index] = tk.Button(self._body_frame.sub_frame, text="B",
-                                                      bg="darkred", fg=FG_COLOR, font=GLOBAL_FONT, width=4,
+                                                      bg="darkred", fg=FG_COLOR, font=GLOBAL_FONT, width=9,
                                                       command=lambda: self._buy_symbol(b_index))
         self.body_widgets['buy'][b_index].grid(row=b_index, column=5)
+        self.body_widgets['sell'][b_index] = tk.Button(self._body_frame.sub_frame, text="S",
+                                                      bg="darkred", fg=FG_COLOR, font=GLOBAL_FONT, width=9,
+                                                      command=lambda: self._sell_symbol(b_index))
+        self.body_widgets['sell'][b_index].grid(row=b_index, column=6)
 
         self._body_index += 1
